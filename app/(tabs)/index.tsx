@@ -1,0 +1,247 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Colors } from '../../constants/colors';
+import { getStreakAsync, isOnboardingDoneAsync } from '../../lib/streak';
+import { useAudio } from '../../hooks/useAudio';
+import { scheduleDailyRemindersAsync } from '../../lib/notifications/koetomo';
+import RecordButton from '../../components/RecordButton';
+import StreakBadge from '../../components/StreakBadge';
+import GlassCard from '../../components/GlassCard';
+import CoachMark from '../../components/CoachMark';
+import SoundOnSVG from '../../components/svg/SoundOnSVG';
+import SoundOffSVG from '../../components/svg/SoundOffSVG';
+
+const TODAY_MESSAGES = [
+  'あなたの話を聞かせてください',
+  '今日はどんな一日でしたか？',
+  'どんな気持ちも、ここで話せます',
+  '1分だけ話すだけでOKです',
+];
+
+export default function HomeScreen() {
+  const router = useRouter();
+  const [streak, setStreak] = useState(0);
+  const [showCoachMark, setShowCoachMark] = useState(false);
+  const { loadBGM, toggleMute, isMuted } = useAudio();
+  const todayMessage = TODAY_MESSAGES[new Date().getDay() % TODAY_MESSAGES.length];
+
+  useEffect(() => {
+    loadBGM();
+    getStreakAsync().then(setStreak);
+    scheduleDailyRemindersAsync().catch(() => {});
+
+    // オンボーディング完了直後のみコーチマークを表示
+    isOnboardingDoneAsync().then((done) => {
+      if (done) {
+        const shown = (global as Record<string, unknown>).__coachMarkShown;
+        if (!shown) {
+          (global as Record<string, unknown>).__coachMarkShown = true;
+          setTimeout(() => setShowCoachMark(true), 500);
+        }
+      }
+    });
+  }, [loadBGM]);
+
+  const handleRecord = useCallback(() => {
+    router.push('/record');
+  }, [router]);
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ヘッダー */}
+        <View style={styles.header}>
+          <Text style={styles.appName}>コエトモ</Text>
+          <TouchableOpacity
+            onPress={toggleMute}
+            style={styles.muteButton}
+            accessibilityRole="button"
+            accessibilityLabel={isMuted ? 'サウンドをオンにする' : 'サウンドをミュートにする'}
+          >
+            {isMuted ? <SoundOffSVG /> : <SoundOnSVG />}
+          </TouchableOpacity>
+        </View>
+
+        {/* ストリーク */}
+        <View style={styles.streakRow}>
+          <StreakBadge streak={streak} />
+        </View>
+
+        {/* メインキャッチコピー */}
+        <GlassCard style={styles.messageCard} variant="elevated">
+          <Text style={styles.messageTitle} accessibilityRole="header">
+            {todayMessage}
+          </Text>
+          <Text style={styles.messageSubtitle}>
+            話すだけで、AIが日記に変えてくれます
+          </Text>
+        </GlassCard>
+
+        {/* 録音ボタン（メインアクション） */}
+        <View style={styles.recordSection}>
+          <RecordButton
+            state="idle"
+            onPress={handleRecord}
+            remainingSeconds={null}
+            isNearLimit={false}
+          />
+        </View>
+
+        {/* 使い方ヒント */}
+        <GlassCard style={styles.hintCard}>
+          <Text style={styles.hintTitle} accessibilityRole="header">
+            使い方
+          </Text>
+          {HINTS.map((hint, i) => (
+            <View key={i} style={styles.hintRow}>
+              <View style={styles.hintNumber} accessible={false}>
+                <Text style={styles.hintNumberText}>{i + 1}</Text>
+              </View>
+              <Text style={styles.hintText}>{hint}</Text>
+            </View>
+          ))}
+        </GlassCard>
+
+        {/* 無料プランの説明 */}
+        <View style={styles.planInfo} accessibilityLabel="無料プランの説明">
+          <Text style={styles.planText}>
+            無料プランは1日3分まで録音できます
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/paywall')}
+            accessibilityRole="button"
+            accessibilityLabel="プレミアムプランの詳細を見る"
+          >
+            <Text style={styles.planLink}>プレミアムにアップグレード</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* コーチマーク（初回のみ） */}
+      <CoachMark
+        visible={showCoachMark}
+        onDismiss={() => setShowCoachMark(false)}
+      />
+    </SafeAreaView>
+  );
+}
+
+const HINTS = [
+  'ボタンをタップしてマイクを起動',
+  '今日の気持ちや出来事を話しかける',
+  'ボタンを再タップして録音を停止',
+  'AIが自動で日記テキストに変換',
+];
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+  },
+  appName: {
+    color: Colors.text,
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  muteButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakRow: {
+    alignItems: 'flex-start',
+  },
+  messageCard: {
+    gap: 8,
+  },
+  messageTitle: {
+    color: Colors.text,
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 28,
+  },
+  messageSubtitle: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  recordSection: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  hintCard: {
+    gap: 12,
+  },
+  hintTitle: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hintNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  hintNumberText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  hintText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    flex: 1,
+  },
+  planInfo: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  planText: {
+    color: Colors.textMuted,
+    fontSize: 13,
+  },
+  planLink: {
+    color: Colors.primaryLight,
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+});

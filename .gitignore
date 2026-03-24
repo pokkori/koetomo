@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+build/
+ios/
+android/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# 環境変数（APIキーを含むため絶対にコミットしない）
+.env
+.env.local
+.env.production
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

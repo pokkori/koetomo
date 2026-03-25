@@ -18,6 +18,10 @@ import GlassCard from '../../components/GlassCard';
 import CoachMark from '../../components/CoachMark';
 import SoundOnSVG from '../../components/svg/SoundOnSVG';
 import SoundOffSVG from '../../components/svg/SoundOffSVG';
+import TodayEmotionCard from '../../components/TodayEmotionCard';
+import InsightSVG from '../../components/svg/InsightSVG';
+import { saveEmotionEntry, getTodayEntry } from '../../lib/emotionLog';
+import { getEmotionById, type EmotionCategory } from '../../constants/emotions';
 
 const TODAY_MESSAGES = [
   'あなたの話を聞かせてください',
@@ -30,6 +34,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [streak, setStreak] = useState(0);
   const [showCoachMark, setShowCoachMark] = useState(false);
+  const [todayEmotion, setTodayEmotion] = useState<EmotionCategory | null>(null);
   const { loadBGM, toggleMute, isMuted } = useAudio();
   const todayMessage = TODAY_MESSAGES[new Date().getDay() % TODAY_MESSAGES.length];
 
@@ -37,6 +42,14 @@ export default function HomeScreen() {
     loadBGM();
     getStreakAsync().then(setStreak);
     scheduleDailyRemindersAsync().catch(() => {});
+
+    // 今日の感情記録を読み込む
+    getTodayEntry().then((entry) => {
+      if (entry) {
+        const emotion = getEmotionById(entry.emotion);
+        if (emotion) setTodayEmotion(emotion);
+      }
+    }).catch(() => {});
 
     // オンボーディング完了直後のみコーチマークを表示
     isOnboardingDoneAsync().then((done) => {
@@ -54,6 +67,24 @@ export default function HomeScreen() {
     router.push('/record');
   }, [router]);
 
+  const handleEmotionSelect = useCallback(async (emotion: EmotionCategory) => {
+    setTodayEmotion(emotion);
+    try {
+      await saveEmotionEntry({
+        date: new Date().toISOString(),
+        emotion: emotion.id,
+        note: '',
+        intensity: 3,
+      });
+    } catch {
+      // 保存失敗してもUI反映は維持
+    }
+  }, []);
+
+  const handleInsightPress = useCallback(() => {
+    router.push('/insight');
+  }, [router]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -64,20 +95,38 @@ export default function HomeScreen() {
         {/* ヘッダー */}
         <View style={styles.header}>
           <Text style={styles.appName}>コエトモ</Text>
-          <TouchableOpacity
-            onPress={toggleMute}
-            style={styles.muteButton}
-            accessibilityRole="button"
-            accessibilityLabel={isMuted ? 'サウンドをオンにする' : 'サウンドをミュートにする'}
-          >
-            {isMuted ? <SoundOffSVG /> : <SoundOnSVG />}
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* インサイトへのショートカット */}
+            <TouchableOpacity
+              onPress={handleInsightPress}
+              style={styles.insightButton}
+              accessibilityRole="button"
+              accessibilityLabel="今週のインサイトを見る"
+              accessibilityHint="感情分布グラフと週次レポートを表示します"
+            >
+              <InsightSVG size={22} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleMute}
+              style={styles.muteButton}
+              accessibilityRole="button"
+              accessibilityLabel={isMuted ? 'サウンドをオンにする' : 'サウンドをミュートにする'}
+            >
+              {isMuted ? <SoundOffSVG /> : <SoundOnSVG />}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ストリーク */}
         <View style={styles.streakRow}>
           <StreakBadge streak={streak} />
         </View>
+
+        {/* 今日の感情記録CTA */}
+        <TodayEmotionCard
+          todayEmotion={todayEmotion}
+          onSelect={handleEmotionSelect}
+        />
 
         {/* メインキャッチコピー */}
         <GlassCard style={styles.messageCard} variant="elevated">
@@ -169,6 +218,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  insightButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   muteButton: {
     minWidth: 44,

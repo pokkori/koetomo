@@ -98,6 +98,10 @@ export default function RootLayout() {
           name="legal/terms"
           options={{ title: '利用規約' }}
         />
+        <Stack.Screen
+          name="insight"
+          options={{ title: '今週のインサイト', headerShown: false }}
+        />
       </Stack>
     </>
   );

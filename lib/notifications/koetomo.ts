@@ -24,6 +24,20 @@ export async function scheduleDailyRemindersAsync(): Promise<void> {
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
+  // 毎日20時: 夕方の振り返りリマインダー（傾聴型）
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'コエトモ',
+      body: '今日はどんな気持ちでしたか？30秒で記録できます',
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 20,
+      minute: 0,
+    },
+  });
+
   // 毎日21時: メインリマインダー
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -48,6 +62,25 @@ export async function scheduleDailyRemindersAsync(): Promise<void> {
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: 22,
+      minute: 0,
+    },
+  });
+}
+
+/** 20時の夕方振り返り通知のみを個別にスケジュール（傾聴型） */
+export async function scheduleEveningReflectionNotification(): Promise<void> {
+  const granted = await requestNotificationPermissionAsync();
+  if (!granted) return;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'コエトモ',
+      body: '今日はどんな気持ちでしたか？30秒で記録できます',
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 20,
       minute: 0,
     },
   });

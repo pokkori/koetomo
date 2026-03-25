@@ -13,6 +13,7 @@ import { Colors, type EmotionType } from '../../constants/colors';
 import { supabase, type DiaryEntry } from '../../lib/supabase';
 import EmotionGraph from '../../components/EmotionGraph';
 import GlassCard from '../../components/GlassCard';
+import InsightSVG from '../../components/svg/InsightSVG';
 
 // プレミアムフラグ（RevenueCat接続後に動的取得）
 const IS_PREMIUM = false;
@@ -113,6 +114,16 @@ export default function EmotionScreen() {
           >
             {EMOTION_SUMMARY[dominantEmotion]}
           </Text>
+          <TouchableOpacity
+            style={styles.insightLink}
+            onPress={() => router.push('/insight')}
+            accessibilityRole="button"
+            accessibilityLabel="週次インサイトレポートを見る"
+            accessibilityHint="感情分布グラフとAIコメントを含む詳細レポートを表示します"
+          >
+            <InsightSVG size={16} color={Colors.primaryLight} />
+            <Text style={styles.insightLinkText}>週次インサイトを見る</Text>
+          </TouchableOpacity>
         </GlassCard>
 
         {/* グラフ */}
@@ -208,6 +219,20 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     gap: 8,
+  },
+  insightLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    minHeight: 44,
+    alignSelf: 'flex-start',
+  },
+  insightLinkText: {
+    color: Colors.primaryLight,
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   summaryLabel: {
     color: Colors.textMuted,

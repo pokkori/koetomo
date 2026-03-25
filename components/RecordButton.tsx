@@ -1,11 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   TouchableOpacity,
   StyleSheet,
-  Animated,
   View,
   Text,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+  Easing,
+} from 'react-native-reanimated';
 import { Colors } from '../constants/colors';
 import type { RecordingState } from '../hooks/useRecording';
 import MicSVG from './svg/MicSVG';
@@ -24,48 +33,76 @@ export default function RecordButton({
   remainingSeconds,
   isNearLimit,
 }: Props) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // タップ時 press scale
+  const pressScale = useSharedValue(1);
+  // 録音中のドキドキ pulse scale
+  const pulseScale = useSharedValue(1);
+  // 外側グローリング scale
+  const ringScale = useSharedValue(1);
+  // 録音完了時ポップ
+  const completionScale = useSharedValue(1);
+
+  const prevState = React.useRef<RecordingState>('idle');
 
   useEffect(() => {
+    const prev = prevState.current;
+    prevState.current = state;
+
     if (state === 'recording') {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.15,
-            duration: 700,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 700,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+      // 録音中: 1.0 ↔ 1.1 でドキドキ感 (withRepeat reversed)
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.1, { duration: 600, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1.0, { duration: 600, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        true
+      );
+      // グローリングも同期してゆっくり拡縮
+      ringScale.value = withRepeat(
+        withSequence(
+          withTiming(1.15, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1.0, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        true
+      );
     } else {
-      pulseAnim.stopAnimation();
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      cancelAnimation(pulseScale);
+      cancelAnimation(ringScale);
+
+      if (prev === 'recording') {
+        // 録音完了: scale 1.2 → 1.0 ポップ感
+        completionScale.value = withSequence(
+          withSpring(1.2, { damping: 6, stiffness: 400 }),
+          withSpring(1.0, { damping: 14, stiffness: 300 }),
+        );
+      }
+
+      pulseScale.value = withTiming(1.0, { duration: 200 });
+      ringScale.value = withTiming(1.0, { duration: 200 });
     }
-  }, [state, pulseAnim]);
+  }, [state]);
 
+  // pressIn: scale 0.85
   const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.93,
-      useNativeDriver: true,
-    }).start();
+    pressScale.value = withSpring(0.85, { damping: 10, stiffness: 400 });
   };
 
+  // pressOut: scale → 1.0
   const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
+    pressScale.value = withSpring(1.0, { damping: 12, stiffness: 350 });
   };
+
+  const buttonAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: pressScale.value * pulseScale.value * completionScale.value },
+    ],
+  }));
+
+  const ringAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ringScale.value }],
+  }));
 
   const isRecording = state === 'recording';
   const isProcessing = state === 'processing';
@@ -78,23 +115,22 @@ export default function RecordButton({
 
   return (
     <View style={styles.container}>
-      {/* 外側の光彩リング（録音中のみ表示） */}
+      {/* 外側の光彩リング（録音中のみ） */}
       {isRecording && (
         <Animated.View
           style={[
             styles.glowRing,
+            ringAnimStyle,
             {
-              transform: [{ scale: pulseAnim }],
               borderColor: isNearLimit ? '#FBBF24' : Colors.recordButtonActive,
             },
           ]}
           accessible={false}
+          pointerEvents="none"
         />
       )}
 
-      <Animated.View
-        style={{ transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }] }}
-      >
+      <Animated.View style={buttonAnimStyle}>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: buttonColor }]}
           onPress={onPress}

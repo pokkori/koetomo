@@ -1,22 +1,125 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { EMOTIONS, type EmotionCategory } from '../constants/emotions';
 import { Colors } from '../constants/colors';
 import GlassCard from './GlassCard';
+import EmotionParticles from './EmotionParticles';
 
 type Props = {
-  todayEmotion: EmotionCategory | null; // 今日の記録済み感情（未記録ならnull）
+  todayEmotion: EmotionCategory | null;
   onSelect: (emotion: EmotionCategory) => void;
 };
 
+// 個別の感情チップ（Reanimated 4 scale spring）
+function EmotionChip({
+  emotion,
+  selected,
+  onPress,
+  mini = false,
+}: {
+  emotion: EmotionCategory;
+  selected: boolean;
+  onPress: (e: EmotionCategory) => void;
+  mini?: boolean;
+}) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePress = () => {
+    // 選択時: 1.0 → 1.15 → 1.0 (spring)
+    scale.value = withSequence(
+      withSpring(1.15, { damping: 8, stiffness: 300 }),
+      withSpring(1.0, { damping: 12, stiffness: 400 }),
+    );
+    onPress(emotion);
+  };
+
+  if (mini) {
+    return (
+      <Animated.View style={animatedStyle}>
+        <TouchableOpacity
+          style={[
+            styles.miniChip,
+            selected && { borderColor: emotion.color, backgroundColor: `${emotion.color}25` },
+          ]}
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={`${emotion.label}に変更`}
+          accessibilityState={{ selected }}
+        >
+          <Svg
+            width={16}
+            height={16}
+            viewBox="0 0 24 24"
+            fill={emotion.color}
+            accessible={false}
+          >
+            <Path d={emotion.svgPath} />
+          </Svg>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        style={[
+          styles.emotionChip,
+          selected && {
+            borderColor: emotion.color,
+            backgroundColor: `${emotion.color}22`,
+            shadowColor: emotion.color,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.4,
+            shadowRadius: 6,
+            elevation: 4,
+          },
+        ]}
+        onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${emotion.label}を記録する`}
+        accessibilityHint={`今日の感情を${emotion.label}として保存します`}
+      >
+        <Svg
+          width={22}
+          height={22}
+          viewBox="0 0 24 24"
+          fill={emotion.color}
+          accessible={false}
+        >
+          <Path d={emotion.svgPath} />
+        </Svg>
+        <Text style={[styles.emotionChipLabel, { color: emotion.color }]}>
+          {emotion.label}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
 export default function TodayEmotionCard({ todayEmotion, onSelect }: Props) {
+  const [particleEmotion, setParticleEmotion] = React.useState<EmotionCategory | null>(null);
+  const [showParticles, setShowParticles] = React.useState(false);
+
   const handleSelect = useCallback(
     async (emotion: EmotionCategory) => {
       try {
@@ -24,112 +127,104 @@ export default function TodayEmotionCard({ todayEmotion, onSelect }: Props) {
       } catch {
         // ハプティクス失敗はサイレント
       }
+      // パーティクル発火
+      setParticleEmotion(emotion);
+      setShowParticles(true);
       onSelect(emotion);
     },
     [onSelect]
   );
 
-  if (todayEmotion) {
-    // 記録済み: 今日の気持ちを表示
-    return (
-      <GlassCard
-        variant="elevated"
-        style={styles.recordedCard}
-        // accessibilityLabel は View に渡せないが親のGlassCardがViewのため別途定義
-      >
-        <View
-          accessibilityLabel={`今日の気持ち: ${todayEmotion.label}。変更するには感情ボタンをタップしてください`}
-          accessible
-        >
-          <Text style={styles.recordedTitle}>今日の気持ち</Text>
-          <View style={styles.recordedRow}>
-            <Svg
-              width={28}
-              height={28}
-              viewBox="0 0 24 24"
-              fill={todayEmotion.color}
-              accessible={false}
-            >
-              <Path d={todayEmotion.svgPath} />
-            </Svg>
-            <Text style={[styles.recordedEmotion, { color: todayEmotion.color }]}>
-              {todayEmotion.label}
-            </Text>
-          </View>
-          <Text style={styles.recordedSubtext}>変更することもできます</Text>
-        </View>
+  const handleParticlesDone = useCallback(() => {
+    setShowParticles(false);
+  }, []);
 
-        {/* 変更用ピッカー（横スクロール） */}
-        <View style={styles.pickerRow} accessible={false}>
-          {EMOTIONS.map((emotion) => {
-            const selected = emotion.id === todayEmotion.id;
-            return (
-              <TouchableOpacity
-                key={emotion.id}
-                style={[
-                  styles.miniChip,
-                  selected && { borderColor: emotion.color, backgroundColor: `${emotion.color}25` },
-                ]}
-                onPress={() => handleSelect(emotion)}
-                accessibilityRole="button"
-                accessibilityLabel={`${emotion.label}に変更`}
-                accessibilityState={{ selected }}
+  if (todayEmotion) {
+    return (
+      <View>
+        <GlassCard
+          variant="elevated"
+          style={styles.recordedCard}
+        >
+          <View
+            accessibilityLabel={`今日の気持ち: ${todayEmotion.label}。変更するには感情ボタンをタップしてください`}
+            accessible
+          >
+            <Text style={styles.recordedTitle}>今日の気持ち</Text>
+            <View style={styles.recordedRow}>
+              <Svg
+                width={28}
+                height={28}
+                viewBox="0 0 24 24"
+                fill={todayEmotion.color}
+                accessible={false}
               >
-                <Svg
-                  width={16}
-                  height={16}
-                  viewBox="0 0 24 24"
-                  fill={emotion.color}
-                  accessible={false}
-                >
-                  <Path d={emotion.svgPath} />
-                </Svg>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </GlassCard>
+                <Path d={todayEmotion.svgPath} />
+              </Svg>
+              <Text style={[styles.recordedEmotion, { color: todayEmotion.color }]}>
+                {todayEmotion.label}
+              </Text>
+            </View>
+            <Text style={styles.recordedSubtext}>変更することもできます</Text>
+          </View>
+
+          <View style={styles.pickerRow} accessible={false}>
+            {EMOTIONS.map((emotion) => {
+              const selected = emotion.id === todayEmotion.id;
+              return (
+                <EmotionChip
+                  key={emotion.id}
+                  emotion={emotion}
+                  selected={selected}
+                  onPress={handleSelect}
+                  mini
+                />
+              );
+            })}
+          </View>
+        </GlassCard>
+
+        {showParticles && particleEmotion && (
+          <EmotionParticles
+            emotionColor={particleEmotion.color}
+            onFinish={handleParticlesDone}
+          />
+        )}
+      </View>
     );
   }
 
-  // 未記録: 感情タップCTA
   return (
-    <GlassCard style={styles.ctaCard}>
-      <Text style={styles.ctaTitle} accessibilityRole="header">
-        今日の感情を記録
-      </Text>
-      <Text style={styles.ctaSubtext}>
-        今の気持ちを選ぶだけで記録できます
-      </Text>
-      <View
-        style={styles.emotionGrid}
-        accessibilityLabel="感情カテゴリ一覧。タップして今日の気持ちを記録してください"
-      >
-        {EMOTIONS.map((emotion) => (
-          <TouchableOpacity
-            key={emotion.id}
-            style={styles.emotionChip}
-            onPress={() => handleSelect(emotion)}
-            accessibilityRole="button"
-            accessibilityLabel={`${emotion.label}を記録する`}
-            accessibilityHint={`今日の感情を${emotion.label}として保存します`}
-          >
-            <Svg
-              width={22}
-              height={22}
-              viewBox="0 0 24 24"
-              fill={emotion.color}
-              accessible={false}
-            >
-              <Path d={emotion.svgPath} />
-            </Svg>
-            <Text style={[styles.emotionChipLabel, { color: emotion.color }]}>
-              {emotion.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </GlassCard>
+    <View>
+      <GlassCard style={styles.ctaCard}>
+        <Text style={styles.ctaTitle} accessibilityRole="header">
+          今日の感情を記録
+        </Text>
+        <Text style={styles.ctaSubtext}>
+          今の気持ちを選ぶだけで記録できます
+        </Text>
+        <View
+          style={styles.emotionGrid}
+          accessibilityLabel="感情カテゴリ一覧。タップして今日の気持ちを記録してください"
+        >
+          {EMOTIONS.map((emotion) => (
+            <EmotionChip
+              key={emotion.id}
+              emotion={emotion}
+              selected={false}
+              onPress={handleSelect}
+            />
+          ))}
+        </View>
+      </GlassCard>
+
+      {showParticles && particleEmotion && (
+        <EmotionParticles
+          emotionColor={particleEmotion.color}
+          onFinish={handleParticlesDone}
+        />
+      )}
+    </View>
   );
 }
 

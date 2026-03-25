@@ -10,6 +10,14 @@ import {
   Share,
   Platform,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/colors';
 import { EMOTIONS, getEmotionById } from '../constants/emotions';
@@ -35,6 +43,43 @@ const AI_INSIGHTS: Record<string, string> = {
 };
 
 const FALLBACK_INSIGHT = '今週もコエトモに話しかけてくれてありがとうございます。あなたの声を、ちゃんと受け取っています。';
+
+// カード入場アニメーションラッパー
+function AnimatedCard({
+  children,
+  index,
+  style,
+}: {
+  children: React.ReactNode;
+  index: number;
+  style?: object;
+}) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(20);
+
+  useEffect(() => {
+    const delay = index * 150;
+    opacity.value = withDelay(
+      delay,
+      withTiming(1, { duration: 400, easing: Easing.out(Easing.quad) })
+    );
+    translateY.value = withDelay(
+      delay,
+      withSpring(0, { damping: 20, stiffness: 200 })
+    );
+  }, [index]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  return (
+    <Animated.View style={[animStyle, style]}>
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function InsightScreen() {
   const router = useRouter();
@@ -69,7 +114,6 @@ export default function InsightScreen() {
   const dominantEmotionData = dominantEmotion ? getEmotionById(dominantEmotion) : null;
   const aiInsight = dominantEmotion ? (AI_INSIGHTS[dominantEmotion] ?? FALLBACK_INSIGHT) : FALLBACK_INSIGHT;
 
-  // 先週比計算（最多感情）
   const getComparisonText = useCallback((): string | null => {
     if (!dominantEmotion) return null;
     const thisWeekCount = weeklyStats[dominantEmotion] ?? 0;
@@ -134,100 +178,110 @@ export default function InsightScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* 今週の感情サマリー */}
-        <GlassCard variant="elevated" style={styles.summaryCard}>
-          <Text style={styles.sectionLabel}>今週の感情まとめ</Text>
-          {dominantEmotionData ? (
-            <>
-              <Text
-                style={[styles.dominantEmotion, { color: dominantEmotionData.color }]}
-                accessibilityLabel={`今週最も多かった感情: ${dominantEmotionData.label}`}
-              >
-                今週最も多かった感情: {dominantEmotionData.label}
-              </Text>
-              {comparisonText && (
+        <AnimatedCard index={0}>
+          <GlassCard variant="elevated" style={styles.summaryCard}>
+            <Text style={styles.sectionLabel}>今週の感情まとめ</Text>
+            {dominantEmotionData ? (
+              <>
                 <Text
-                  style={styles.comparisonText}
-                  accessibilityLabel={comparisonText}
+                  style={[styles.dominantEmotion, { color: dominantEmotionData.color }]}
+                  accessibilityLabel={`今週最も多かった感情: ${dominantEmotionData.label}`}
                 >
-                  {comparisonText}
+                  今週最も多かった感情: {dominantEmotionData.label}
                 </Text>
-              )}
-            </>
-          ) : (
-            <Text style={styles.noDataText}>
-              まだ今週の記録がありません
+                {comparisonText && (
+                  <Text
+                    style={styles.comparisonText}
+                    accessibilityLabel={comparisonText}
+                  >
+                    {comparisonText}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text style={styles.noDataText}>
+                まだ今週の記録がありません
+              </Text>
+            )}
+            <Text style={styles.recordCount} accessibilityLabel={`今週の記録: ${totalCount}件`}>
+              今週の記録: {totalCount}件
             </Text>
-          )}
-          <Text style={styles.recordCount} accessibilityLabel={`今週の記録: ${totalCount}件`}>
-            今週の記録: {totalCount}件
-          </Text>
-        </GlassCard>
+          </GlassCard>
+        </AnimatedCard>
 
         {/* 感情分布棒グラフ */}
-        <GlassCard style={styles.graphCard}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            今週の感情分布
-          </Text>
-          <WeeklyBarChart stats={weeklyStats} />
-        </GlassCard>
+        <AnimatedCard index={1}>
+          <GlassCard style={styles.graphCard}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              今週の感情分布
+            </Text>
+            <WeeklyBarChart stats={weeklyStats} />
+          </GlassCard>
+        </AnimatedCard>
 
-        {/* AIからひとこと（傾聴型） */}
-        <GlassCard variant="elevated" style={styles.aiCard}>
-          <Text style={styles.aiLabel} accessibilityRole="header">
-            コエトモからひとこと
-          </Text>
-          <Text style={styles.aiText} accessibilityLabel={`AIコメント: ${aiInsight}`}>
-            {aiInsight}
-          </Text>
-        </GlassCard>
+        {/* AIからひとこと */}
+        <AnimatedCard index={2}>
+          <GlassCard variant="elevated" style={styles.aiCard}>
+            <Text style={styles.aiLabel} accessibilityRole="header">
+              コエトモからひとこと
+            </Text>
+            <Text style={styles.aiText} accessibilityLabel={`AIコメント: ${aiInsight}`}>
+              {aiInsight}
+            </Text>
+          </GlassCard>
+        </AnimatedCard>
 
         {/* 感情別内訳リスト */}
-        <GlassCard style={styles.breakdownCard}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            感情の内訳
-          </Text>
-          {EMOTIONS.map((emotion) => {
-            const count = weeklyStats[emotion.id] ?? 0;
-            const maxVal = Math.max(...Object.values(weeklyStats), 1);
-            const pct = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
-            return (
-              <View
-                key={emotion.id}
-                style={styles.breakdownRow}
-                accessibilityLabel={`${emotion.label}: ${count}回 (${pct}%)`}
-              >
+        <AnimatedCard index={3}>
+          <GlassCard style={styles.breakdownCard}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              感情の内訳
+            </Text>
+            {EMOTIONS.map((emotion) => {
+              const count = weeklyStats[emotion.id] ?? 0;
+              const maxVal = Math.max(...Object.values(weeklyStats), 1);
+              const pct = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
+              return (
                 <View
-                  style={[styles.colorDot, { backgroundColor: emotion.color }]}
-                  accessible={false}
-                />
-                <Text style={styles.breakdownLabel}>{emotion.label}</Text>
-                <View style={styles.breakdownBarTrack} accessible={false}>
+                  key={emotion.id}
+                  style={styles.breakdownRow}
+                  accessibilityLabel={`${emotion.label}: ${count}回 (${pct}%)`}
+                >
                   <View
-                    style={[
-                      styles.breakdownBarFill,
-                      {
-                        width: count > 0 ? `${(count / maxVal) * 100}%` : '0%',
-                        backgroundColor: emotion.color,
-                      },
-                    ]}
+                    style={[styles.colorDot, { backgroundColor: emotion.color }]}
+                    accessible={false}
                   />
+                  <Text style={styles.breakdownLabel}>{emotion.label}</Text>
+                  <View style={styles.breakdownBarTrack} accessible={false}>
+                    <View
+                      style={[
+                        styles.breakdownBarFill,
+                        {
+                          width: count > 0 ? `${(count / maxVal) * 100}%` : '0%',
+                          backgroundColor: emotion.color,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.breakdownCount}>{count}回</Text>
                 </View>
-                <Text style={styles.breakdownCount}>{count}回</Text>
-              </View>
-            );
-          })}
-        </GlassCard>
+              );
+            })}
+          </GlassCard>
+        </AnimatedCard>
 
         {/* Xシェアボタン */}
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={handleShare}
-          accessibilityRole="button"
-          accessibilityLabel="今週のインサイトをシェアする"
-          accessibilityHint="Xなどのアプリでシェアできます"
-        >
-          <Text style={styles.shareButtonText}>今週のインサイトをシェア</Text>
-        </TouchableOpacity>
+        <AnimatedCard index={4}>
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={handleShare}
+            accessibilityRole="button"
+            accessibilityLabel="今週のインサイトをシェアする"
+            accessibilityHint="Xなどのアプリでシェアできます"
+          >
+            <Text style={styles.shareButtonText}>今週のインサイトをシェア</Text>
+          </TouchableOpacity>
+        </AnimatedCard>
       </ScrollView>
     </SafeAreaView>
   );

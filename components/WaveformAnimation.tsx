@@ -1,5 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withRepeat,
+  withSequence,
+  withDelay,
+  interpolate,
+} from 'react-native-reanimated';
 import { Colors } from '../constants/colors';
 
 type Props = {
@@ -7,46 +16,47 @@ type Props = {
   barCount?: number;
 };
 
-export default function WaveformAnimation({ isActive, barCount = 7 }: Props) {
-  const animations = useRef(
-    Array.from({ length: barCount }, () => new Animated.Value(0.15))
-  ).current;
+function WaveBar({ isActive, index, maxScale, duration }: { isActive: boolean; index: number; maxScale: number; duration: number }) {
+  const progress = useSharedValue(0.15);
 
   useEffect(() => {
     if (!isActive) {
-      animations.forEach((anim) => {
-        Animated.timing(anim, {
-          toValue: 0.15,
-          duration: 300,
-          useNativeDriver: false,
-        }).start();
-      });
+      progress.value = withTiming(0.15, { duration: 300 });
       return;
     }
 
-    const loops = animations.map((anim, i) => {
-      const maxScale = 0.3 + Math.random() * 0.7;
-      const duration = 300 + Math.random() * 400;
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: maxScale,
-            duration: duration,
-            delay: i * 60,
-            useNativeDriver: false,
-          }),
-          Animated.timing(anim, {
-            toValue: 0.15,
-            duration: duration,
-            useNativeDriver: false,
-          }),
-        ])
-      );
-    });
+    progress.value = withDelay(
+      index * 60,
+      withRepeat(
+        withSequence(
+          withTiming(maxScale, { duration }),
+          withTiming(0.15, { duration }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, [isActive, index, maxScale, duration, progress]);
 
-    loops.forEach((loop) => loop.start());
-    return () => loops.forEach((loop) => loop.stop());
-  }, [isActive, animations]);
+  const animStyle = useAnimatedStyle(() => ({
+    height: interpolate(progress.value, [0, 1], [4, 44]),
+    backgroundColor: isActive ? Colors.primaryLight : Colors.textMuted,
+    opacity: isActive ? 1 : 0.4,
+  }));
+
+  return <Animated.View style={[styles.bar, animStyle]} />;
+}
+
+export default function WaveformAnimation({ isActive, barCount = 7 }: Props) {
+  // Generate stable random values for each bar
+  const barConfigs = React.useMemo(
+    () =>
+      Array.from({ length: barCount }, (_, i) => ({
+        maxScale: 0.3 + ((i * 17 + 7) % 10) / 10 * 0.7,
+        duration: 300 + ((i * 13 + 3) % 10) / 10 * 400,
+      })),
+    [barCount],
+  );
 
   return (
     <View
@@ -54,20 +64,13 @@ export default function WaveformAnimation({ isActive, barCount = 7 }: Props) {
       accessible={false}
       aria-hidden
     >
-      {animations.map((anim, i) => (
-        <Animated.View
+      {barConfigs.map((config, i) => (
+        <WaveBar
           key={i}
-          style={[
-            styles.bar,
-            {
-              height: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [4, 44],
-              }),
-              backgroundColor: isActive ? Colors.primaryLight : Colors.textMuted,
-              opacity: isActive ? 1 : 0.4,
-            },
-          ]}
+          isActive={isActive}
+          index={i}
+          maxScale={config.maxScale}
+          duration={config.duration}
         />
       ))}
     </View>

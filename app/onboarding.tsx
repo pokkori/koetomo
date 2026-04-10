@@ -3,10 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Dimensions,
   ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/colors';
 import { setOnboardingDoneAsync } from '../lib/streak';
@@ -59,14 +60,14 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.container}>
       {/* スキップボタン（常に右上に表示） */}
-      <TouchableOpacity
+      <Pressable
         style={styles.skipButton}
         onPress={handleFinish}
         accessibilityRole="button"
         accessibilityLabel="オンボーディングをスキップする"
       >
         <Text style={styles.skipText}>スキップ</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* スライドコンテンツ */}
       <ScrollView
@@ -107,7 +108,7 @@ export default function OnboardingScreen() {
       </View>
 
       {/* 次へ / 始めるボタン */}
-      <TouchableOpacity
+      <Pressable
         style={styles.nextButton}
         onPress={goNext}
         accessibilityRole="button"
@@ -116,7 +117,7 @@ export default function OnboardingScreen() {
         <Text style={styles.nextButtonText}>
           {currentIndex < SLIDES.length - 1 ? '次へ' : '始める'}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

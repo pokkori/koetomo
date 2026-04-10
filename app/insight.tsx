@@ -5,11 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Share,
   Platform,
+  Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -30,6 +32,7 @@ import {
 import GlassCard from '../components/GlassCard';
 import WeeklyBarChart from '../components/WeeklyBarChart';
 import * as Haptics from 'expo-haptics';
+import { useRewardedAd } from '../hooks/useAdMob';
 
 // 傾聴型AIコメント（ネガティブを否定しない）
 const AI_INSIGHTS: Record<string, string> = {
@@ -142,6 +145,17 @@ export default function InsightScreen() {
     }
   }, [dominantEmotionData]);
 
+  const { isLoaded: adLoaded, showAd } = useRewardedAd();
+  const handleWatchAd = useCallback(() => {
+    showAd(() => {});
+  }, [showAd]);
+
+  const handleShareX = useCallback(async () => {
+    const emotionLabel = dominantEmotionData?.label ?? '様々な気持ち';
+    const msg = encodeURIComponent(`今週の感情: ${emotionLabel}が多めでした。コエトモで感情を記録中 #コエトモ`);
+    await Linking.openURL(`https://twitter.com/intent/tweet?text=${msg}`);
+  }, [dominantEmotionData]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -158,14 +172,14 @@ export default function InsightScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* ヘッダー */}
       <View style={styles.header}>
-        <TouchableOpacity
+        <Pressable
           onPress={() => router.back()}
           style={styles.backButton}
           accessibilityRole="button"
           accessibilityLabel="前の画面に戻る"
         >
           <Text style={styles.backText}>← 戻る</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitle} accessibilityRole="header">
           今週のインサイト
         </Text>
@@ -272,7 +286,7 @@ export default function InsightScreen() {
 
         {/* Xシェアボタン */}
         <AnimatedCard index={4}>
-          <TouchableOpacity
+          <Pressable
             style={styles.shareButton}
             onPress={handleShare}
             accessibilityRole="button"
@@ -280,8 +294,34 @@ export default function InsightScreen() {
             accessibilityHint="Xなどのアプリでシェアできます"
           >
             <Text style={styles.shareButtonText}>今週のインサイトをシェア</Text>
-          </TouchableOpacity>
+          </Pressable>
         </AnimatedCard>
+
+        {/* Xに投稿ボタン */}
+        <AnimatedCard index={5}>
+          <Pressable
+            style={styles.xShareButton}
+            onPress={handleShareX}
+            accessibilityRole="button"
+            accessibilityLabel="Xに投稿する"
+          >
+            <Text style={styles.xShareButtonText}>Xに投稿</Text>
+          </Pressable>
+        </AnimatedCard>
+
+        {/* 広告リワードボタン */}
+        {adLoaded && (
+          <AnimatedCard index={6}>
+            <Pressable
+              style={styles.adRewardButton}
+              onPress={handleWatchAd}
+              accessibilityRole="button"
+              accessibilityLabel="広告を見て特典を獲得する"
+            >
+              <Text style={styles.adRewardButtonText}>広告で特別機能をアンロック</Text>
+            </Pressable>
+          </AnimatedCard>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -442,6 +482,34 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  xShareButton: {
+    backgroundColor: '#000',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  xShareButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  adRewardButton: {
+    backgroundColor: '#FFB300',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  adRewardButtonText: {
+    color: '#1A1A2E',
     fontSize: 15,
     fontWeight: '700',
   },

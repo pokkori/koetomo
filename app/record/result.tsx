@@ -4,10 +4,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../constants/colors';
@@ -99,14 +100,14 @@ export default function ResultScreen() {
           <Text style={styles.errorText} accessibilityRole="alert">
             {errorMessage}
           </Text>
-          <TouchableOpacity
+          <Pressable
             style={styles.retryButton}
             onPress={() => router.replace('/(tabs)')}
             accessibilityRole="button"
             accessibilityLabel="ホームに戻る"
           >
             <Text style={styles.retryButtonText}>ホームに戻る</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -191,22 +192,22 @@ export default function ResultScreen() {
 
         {/* アクションボタン */}
         <View style={styles.actions}>
-          <TouchableOpacity
+          <Pressable
             style={styles.primaryButton}
             onPress={() => router.replace('/(tabs)')}
             accessibilityRole="button"
             accessibilityLabel="ホームに戻る"
           >
             <Text style={styles.primaryButtonText}>ホームに戻る</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={styles.secondaryButton}
             onPress={() => router.push('/(tabs)/history')}
             accessibilityRole="button"
             accessibilityLabel="日記一覧を見る"
           >
             <Text style={styles.secondaryButtonText}>日記一覧を見る</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>

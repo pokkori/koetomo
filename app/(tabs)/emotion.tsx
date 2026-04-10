@@ -5,9 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors, type EmotionType } from '../../constants/colors';
 import { supabase, type DiaryEntry } from '../../lib/supabase';
@@ -114,7 +115,7 @@ export default function EmotionScreen() {
           >
             {EMOTION_SUMMARY[dominantEmotion]}
           </Text>
-          <TouchableOpacity
+          <Pressable
             style={styles.insightLink}
             onPress={() => router.push('/insight')}
             accessibilityRole="button"
@@ -123,7 +124,7 @@ export default function EmotionScreen() {
           >
             <InsightSVG size={16} color={Colors.primaryLight} />
             <Text style={styles.insightLinkText}>週次インサイトを見る</Text>
-          </TouchableOpacity>
+          </Pressable>
         </GlassCard>
 
         {/* グラフ */}
@@ -143,7 +144,7 @@ export default function EmotionScreen() {
             <Text style={styles.premiumBody}>
               プレミアムプランでは月次・年次の感情変化を詳しく確認できます。
             </Text>
-            <TouchableOpacity
+            <Pressable
               style={styles.premiumButton}
               onPress={() => router.push('/paywall')}
               accessibilityRole="button"
@@ -152,7 +153,7 @@ export default function EmotionScreen() {
               <Text style={styles.premiumButtonText}>
                 プレミアムで全履歴を確認
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </GlassCard>
         )}
 

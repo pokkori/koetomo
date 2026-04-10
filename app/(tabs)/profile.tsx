@@ -5,9 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  TouchableOpacity,
+  Pressable,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { getStreakAsync } from '../../lib/streak';
@@ -40,14 +41,14 @@ export default function ProfileScreen() {
               {IS_PREMIUM ? 'プレミアムプラン' : '無料プラン'}
             </Text>
             {!IS_PREMIUM && (
-              <TouchableOpacity
+              <Pressable
                 style={styles.upgradeChip}
                 onPress={() => router.push('/paywall')}
                 accessibilityRole="button"
                 accessibilityLabel="プレミアムプランにアップグレードする"
               >
                 <Text style={styles.upgradeChipText}>アップグレード</Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
           </View>
           {!IS_PREMIUM && (
@@ -86,7 +87,7 @@ export default function ProfileScreen() {
             サポート・情報
           </Text>
           {MENU_ITEMS.map((item) => (
-            <TouchableOpacity
+            <Pressable
               key={item.label}
               style={styles.menuItem}
               onPress={() => router.push(item.path as `/${string}`)}
@@ -96,7 +97,7 @@ export default function ProfileScreen() {
             >
               <Text style={styles.menuLabel}>{item.label}</Text>
               <ChevronRightSVG />
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
@@ -109,14 +110,14 @@ export default function ProfileScreen() {
         </View>
 
         {/* お問い合わせ */}
-        <TouchableOpacity
+        <Pressable
           style={styles.supportButton}
           onPress={() => Alert.alert('お問い合わせ', 'support@koetomo.app までご連絡ください')}
           accessibilityRole="button"
           accessibilityLabel="サポートへお問い合わせ"
         >
           <Text style={styles.supportButtonText}>サポートへお問い合わせ</Text>
-        </TouchableOpacity>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

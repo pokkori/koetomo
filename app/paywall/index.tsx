@@ -5,9 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  TouchableOpacity,
+  Pressable,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import GlassCard from '../../components/GlassCard';
@@ -67,7 +68,7 @@ export default function PaywallScreen() {
 
         {/* プラン選択 */}
         <View style={styles.planSelector} accessibilityRole="radiogroup">
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.planOption,
               selectedPlan === 'monthly' && styles.planOptionSelected,
@@ -83,9 +84,9 @@ export default function PaywallScreen() {
               <Text style={styles.planPriceUnit}>円/月</Text>
             </Text>
             <Text style={styles.planOptionNote}>日記帳1冊より安い</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.planOption,
               selectedPlan === 'yearly' && styles.planOptionSelected,
@@ -104,7 +105,7 @@ export default function PaywallScreen() {
               <Text style={styles.planPriceUnit}>円/年</Text>
             </Text>
             <Text style={styles.planOptionNote}>1日あたり約13円</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* 特典一覧 */}
@@ -132,7 +133,7 @@ export default function PaywallScreen() {
         </View>
 
         {/* 購入ボタン */}
-        <TouchableOpacity
+        <Pressable
           style={styles.subscribeButton}
           onPress={handleSubscribe}
           accessibilityRole="button"
@@ -145,27 +146,27 @@ export default function PaywallScreen() {
           <Text style={styles.subscribeButtonText}>
             {selectedPlan === 'monthly' ? '月額580円で始める' : '年額4,800円で始める'}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* リストア */}
-        <TouchableOpacity
+        <Pressable
           style={styles.restoreButton}
           onPress={() => Alert.alert('購入の復元', 'RevenueCat接続後に有効になります。')}
           accessibilityRole="button"
           accessibilityLabel="以前の購入を復元する"
         >
           <Text style={styles.restoreText}>以前の購入を復元する</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* 閉じるボタン */}
-        <TouchableOpacity
+        <Pressable
           style={styles.closeButton}
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel="このモーダルを閉じる"
         >
           <Text style={styles.closeText}>後で</Text>
-        </TouchableOpacity>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );

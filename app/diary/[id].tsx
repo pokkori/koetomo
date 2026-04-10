@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { supabase, type DiaryEntry } from '../../lib/supabase';

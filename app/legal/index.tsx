@@ -1,9 +1,11 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
 
 export default function LegalScreen() {
   return (
+    <LinearGradient colors={['#0F0F1A', '#1A0A2E', '#2D1B4E']} style={{ flex: 1 }}>
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scroll}
@@ -25,11 +27,12 @@ export default function LegalScreen() {
         ))}
       </ScrollView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const SECTIONS = [
-  { title: '販売業者名', body: '個人事業主 [YOUR_NAME]' },
+  { title: '販売業者名', body: '個人運営' },
   { title: '所在地', body: '請求があった場合は遅滞なく開示します' },
   { title: '電話番号', body: '請求があった場合は遅滞なく開示します' },
   { title: 'メールアドレス', body: 'support@koetomo.app' },

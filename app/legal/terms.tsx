@@ -1,9 +1,11 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/colors';
 
 export default function TermsScreen() {
   return (
+    <LinearGradient colors={['#0F0F1A', '#1A0A2E', '#2D1B4E']} style={{ flex: 1 }}>
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scroll}
@@ -26,6 +28,7 @@ export default function TermsScreen() {
         ))}
       </ScrollView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 

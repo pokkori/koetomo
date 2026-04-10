@@ -4,9 +4,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   SafeAreaView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { getStreakAsync, isOnboardingDoneAsync } from '../../lib/streak';
@@ -22,6 +24,7 @@ import TodayEmotionCard from '../../components/TodayEmotionCard';
 import InsightSVG from '../../components/svg/InsightSVG';
 import { saveEmotionEntry, getTodayEntry } from '../../lib/emotionLog';
 import { getEmotionById, type EmotionCategory } from '../../constants/emotions';
+import WelcomeBackModal, { checkWelcomeBack } from '../../components/WelcomeBackModal';
 
 const TODAY_MESSAGES = [
   'あなたの話を聞かせてください',
@@ -36,11 +39,14 @@ export default function HomeScreen() {
   const [showCoachMark, setShowCoachMark] = useState(false);
   const [todayEmotion, setTodayEmotion] = useState<EmotionCategory | null>(null);
   const { loadBGM, toggleMute, isMuted } = useAudio();
+  const [welcomeVisible, setWelcomeVisible] = useState(false);
+  const [welcomeResult, setWelcomeResult] = useState<{ shouldShow: boolean; hoursAway: number; bonusCoins: number; message: string }>({ shouldShow: false, hoursAway: 0, bonusCoins: 0, message: '' });
   const todayMessage = TODAY_MESSAGES[new Date().getDay() % TODAY_MESSAGES.length];
 
   useEffect(() => {
     loadBGM();
     getStreakAsync().then(setStreak);
+    checkWelcomeBack().then((r) => { if (r.shouldShow) { setWelcomeResult(r); setWelcomeVisible(true); } });
     scheduleDailyRemindersAsync().catch(() => {});
 
     // 今日の感情記録を読み込む
@@ -86,6 +92,7 @@ export default function HomeScreen() {
   }, [router]);
 
   return (
+    <LinearGradient colors={[Colors.background, '#E8D5F0', '#D5C8F0']} style={styles.gradient}>
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scroll}
@@ -93,29 +100,29 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ヘッダー */}
-        <View style={styles.header}>
+        <Animated.View entering={FadeInDown.delay(0).duration(500).springify()} style={styles.header}>
           <Text style={styles.appName}>コエトモ</Text>
           <View style={styles.headerActions}>
             {/* インサイトへのショートカット */}
-            <TouchableOpacity
+            <Pressable
               onPress={handleInsightPress}
-              style={styles.insightButton}
+              style={({ pressed }) => [styles.insightButton, pressed && { transform: [{ scale: 0.95 }] }]}
               accessibilityRole="button"
               accessibilityLabel="今週のインサイトを見る"
               accessibilityHint="感情分布グラフと週次レポートを表示します"
             >
               <InsightSVG size={22} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               onPress={toggleMute}
-              style={styles.muteButton}
+              style={({ pressed }) => [styles.muteButton, pressed && { transform: [{ scale: 0.95 }] }]}
               accessibilityRole="button"
               accessibilityLabel={isMuted ? 'サウンドをオンにする' : 'サウンドをミュートにする'}
             >
               {isMuted ? <SoundOffSVG /> : <SoundOnSVG />}
-            </TouchableOpacity>
+            </Pressable>
           </View>
-        </View>
+        </Animated.View>
 
         {/* ストリーク */}
         <View style={styles.streakRow}>
@@ -168,13 +175,14 @@ export default function HomeScreen() {
           <Text style={styles.planText}>
             無料プランは1日3分まで録音できます
           </Text>
-          <TouchableOpacity
+          <Pressable
             onPress={() => router.push('/paywall')}
+            style={({ pressed }) => [pressed && { opacity: 0.7 }]}
             accessibilityRole="button"
             accessibilityLabel="プレミアムプランの詳細を見る"
           >
             <Text style={styles.planLink}>プレミアムにアップグレード</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -183,7 +191,13 @@ export default function HomeScreen() {
         visible={showCoachMark}
         onDismiss={() => setShowCoachMark(false)}
       />
+      <WelcomeBackModal
+        visible={welcomeVisible}
+        result={welcomeResult}
+        onClose={() => setWelcomeVisible(false)}
+      />
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -195,9 +209,9 @@ const HINTS = [
 ];
 
 const styles = StyleSheet.create({
+  gradient: { flex: 1 },
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scroll: {
     flex: 1,
@@ -218,6 +232,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(124,58,237,0.4)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   headerActions: {
     flexDirection: 'row',

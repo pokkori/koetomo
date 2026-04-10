@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Colors } from '../constants/colors';
 
 type Props = {
@@ -12,19 +13,19 @@ type Props = {
  */
 export default function AiBackchatBubble({ text, isStreaming = false }: Props) {
   const [displayedText, setDisplayedText] = useState('');
-  const opacity = useRef(new Animated.Value(0)).current;
+  const opacity = useSharedValue(0);
   const indexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   useEffect(() => {
     if (!text) return;
 
     // フェードイン
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    opacity.value = withTiming(1, { duration: 300 });
 
     // タイプライター演出
     indexRef.current = 0;
@@ -47,7 +48,7 @@ export default function AiBackchatBubble({ text, isStreaming = false }: Props) {
   if (!text && !isStreaming) return null;
 
   return (
-    <Animated.View style={[styles.container, { opacity }]}>
+    <Animated.View style={[styles.container, animStyle]}>
       <View style={styles.bubble}>
         <View style={styles.avatarDot} accessible={false} />
         <Text

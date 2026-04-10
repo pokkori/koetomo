@@ -5,8 +5,9 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { useRecording } from '../../hooks/useRecording';
@@ -113,22 +114,22 @@ export default function RecordScreen() {
             プレミアムなら無制限で録音できます。
           </Text>
           <Text style={styles.paywallPrice}>月額580円（1日あたり約19円）</Text>
-          <TouchableOpacity
+          <Pressable
             style={styles.upgradeButton}
             onPress={() => router.replace('/paywall')}
             accessibilityRole="button"
             accessibilityLabel="プレミアムプランにアップグレードする"
           >
             <Text style={styles.upgradeButtonText}>プレミアムにアップグレード</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={styles.cancelButton}
             onPress={handleDiscard}
             accessibilityRole="button"
             accessibilityLabel="今回はキャンセルしてホームに戻る"
           >
             <Text style={styles.cancelButtonText}>キャンセル</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -190,14 +191,14 @@ export default function RecordScreen() {
           isNearLimit={isNearLimit}
         />
         {state === 'idle' && (
-          <TouchableOpacity
+          <Pressable
             style={styles.discardButton}
             onPress={handleDiscard}
             accessibilityRole="button"
             accessibilityLabel="キャンセルしてホームに戻る"
           >
             <Text style={styles.discardText}>キャンセル</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
     </SafeAreaView>

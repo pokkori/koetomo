@@ -6,8 +6,9 @@ import {
   FlatList,
   SafeAreaView,
   ActivityIndicator,
-  TouchableOpacity,
+  Pressable,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { supabase, type DiaryEntry } from '../../lib/supabase';
@@ -94,14 +95,14 @@ export default function HistoryScreen() {
             <Text style={styles.emptySubtext}>
               ホーム画面から録音を始めてみましょう
             </Text>
-            <TouchableOpacity
+            <Pressable
               style={styles.emptyButton}
               onPress={() => router.push('/(tabs)')}
               accessibilityRole="button"
               accessibilityLabel="ホーム画面に移動する"
             >
               <Text style={styles.emptyButtonText}>ホームへ</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         }
         renderItem={({ item }) => (

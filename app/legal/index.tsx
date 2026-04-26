@@ -34,7 +34,7 @@ export default function LegalScreen() {
 const SECTIONS = [
   { title: '販売業者名', body: '個人運営' },
   { title: '所在地', body: '請求があった場合は遅滞なく開示します' },
-  { title: '電話番号', body: '請求があった場合は遅滞なく開示します' },
+  { title: '電話番号', body: '090-6093-5290' },
   { title: 'メールアドレス', body: 'support@koetomo.app' },
   { title: 'サービス名', body: 'コエトモ - 声日記AIコンパニオン' },
   {
